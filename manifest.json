@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Google Meet Caption Extractor",
   "version": "1.0",
-  "description": "Extrai legendas e nomes dos locutores do Google Meet e exibe no console.",
+  "description": "Extrai legendas e nomes dos locutores do Google Meet e exibe no console e em um popup.",
   "permissions": ["scripting", "activeTab"],
   "host_permissions": ["https://meet.google.com/*"],
   "background": {
@@ -14,5 +14,8 @@
       "js": ["content.js"],
       "run_at": "document_end"
     }
-  ]
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  }
 }
