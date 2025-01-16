@@ -36,8 +36,19 @@
     console.log("Falante Atual:", currentSpeaker);
 
     if (currentText === "…" || currentText === "") {
-      // Resetar o estado durante o silêncio
+      // Silêncio detectado
       if (lastProcessedText !== "" || lastSpeaker !== "") {
+        // Envia a última transcrição antes de resetar
+        const formattedTranscription = `${lastSpeaker}: ${lastProcessedText}`;
+        console.log(`Transcrição final: ${formattedTranscription}`);
+
+        // Envia a transcrição final para background.js
+        chrome.runtime.sendMessage({
+          type: "FINAL_TRANSCRIPTION",
+          text: formattedTranscription,
+        });
+
+        // Resetar o estado
         console.log("Silêncio detectado. Resetando estado.");
         lastProcessedText = "";
         lastSpeaker = "";
@@ -122,6 +133,19 @@
             const captionContainerRemoved = node.matches('[jsname="YSxPC"]') || node.querySelector('[jsname="YSxPC"]');
             if (captionContainerRemoved) {
               console.log("Container de legendas removido.");
+
+              // Process the last transcription before disconnecting
+              if (lastProcessedText !== "" || lastSpeaker !== "") {
+                const formattedTranscription = `${lastSpeaker}: ${lastProcessedText}`;
+                console.log(`Transcrição final antes da remoção: ${formattedTranscription}`);
+
+                // Envia a transcrição final para background.js
+                chrome.runtime.sendMessage({
+                  type: "FINAL_TRANSCRIPTION",
+                  text: formattedTranscription,
+                });
+              }
+
               if (captionObserver) {
                 captionObserver.disconnect();
                 captionObserver = null;
