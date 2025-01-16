@@ -1,35 +1,43 @@
-// popup.js
+// Armazena a última transcrição exibida
+let lastTranscription = "";
 
-// Array local para armazenar as transcrições que vamos exibir
-let transcriptions = [];
-
-// Busca o container para exibir as mensagens
+// Elemento do container onde exibiremos a transcrição
 const container = document.getElementById("transcriptionContainer");
 
-// Função para renderizar as transcrições na tela
-function renderTranscriptions() {
-  container.innerHTML = ""; // limpa o conteúdo
+// Atualiza a transcrição no popup
+function updateTranscription(newText) {
+  if (newText !== lastTranscription) {
+    lastTranscription = newText;
 
-  transcriptions.forEach((text) => {
-    const messageDiv = document.createElement("div");
-    messageDiv.className = "transcription-message";
-    messageDiv.textContent = text;
-    container.appendChild(messageDiv);
-  });
+    // Formatar o texto com duas quebras de linha
+    const [speaker, ...transcriptionParts] = newText.split(":");
+    const transcription = transcriptionParts.join(":").trim(); // Junta a transcrição, caso haja ":" no texto
+
+    const formattedText = `${speaker}:\n\n${transcription}`;
+
+    // Cria um novo elemento para exibir a transcrição formatada
+    const transcriptionElement = document.createElement("div");
+    transcriptionElement.style.whiteSpace = "pre-wrap"; // Preserva quebras de linha
+    transcriptionElement.textContent = formattedText;
+
+    // Limpa o container e adiciona a nova transcrição
+    container.innerHTML = ""; // Se quiser manter histórico, remova essa linha
+    container.appendChild(transcriptionElement);
+  }
 }
 
-// 1. Ao abrir o popup, pede todas as transcrições já salvas no background
+
+// Solicita todas as transcrições existentes ao carregar o popup
 chrome.runtime.sendMessage({ type: "GET_TRANSCRIPTIONS" }, (response) => {
-  if (response && response.transcriptions) {
-    transcriptions = response.transcriptions;
-    renderTranscriptions();
+  if (response && response.transcriptions.length > 0) {
+    const lastText = response.transcriptions[response.transcriptions.length - 1];
+    updateTranscription(lastText);
   }
 });
 
-// 2. Fica escutando novas transcrições que o background avisar
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+// Escuta novas transcrições enviadas pelo background.js
+chrome.runtime.onMessage.addListener((request) => {
   if (request.type === "NEW_TRANSCRIPTION") {
-    transcriptions.push(request.text);
-    renderTranscriptions();
+    updateTranscription(request.text);
   }
 });

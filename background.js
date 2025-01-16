@@ -1,36 +1,48 @@
 // background.js
 
-// Um array para manter todas as mensagens transcritas
+// Armazena todas as transcrições processadas
 let transcriptions = [];
 
-// Quando a aba é atualizada
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (
-    changeInfo.status === "complete" &&
-    tab.url.includes("https://meet.google.com/")
-  ) {
-    // Injetar o script (CASO deseje injetar manualmente):
-    chrome.scripting.executeScript({
-      target: { tabId: tabId },
-      files: ["content.js"],
-      world: "MAIN", // injetar no contexto da página
-    });
-  }
-});
+// Buffer para consolidar transcrições antes de enviá-las
+let buffer = "";
+let bufferTimer = null;
+const BUFFER_TIMEOUT = 500; // Tempo de espera para consolidar fragmentos
 
-// Ouvir mensagens vindas do content.js
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.type === "NEW_TRANSCRIPTION") {
-    // Salva a nova transcrição
-    transcriptions.push(request.text);
+// Função para processar o buffer e adicionar ao array de transcrições
+function processBuffer() {
+  if (buffer.trim().length > 0) {
+    const consolidatedText = buffer.trim();
 
-    // Notifica todos os scripts (incluindo popup.js se estiver aberto)
+    // Adiciona a transcrição consolidada ao array
+    transcriptions.push(consolidatedText);
+
+    // Notifica o popup com a transcrição consolidada
     chrome.runtime.sendMessage({
       type: "NEW_TRANSCRIPTION",
-      text: request.text,
+      text: consolidatedText,
     });
+
+    // Limpa o buffer
+    buffer = "";
+    bufferTimer = null;
+  }
+}
+
+// Listener para mensagens do content.js
+chrome.runtime.onMessage.addListener((request) => {
+  if (request.type === "NEW_TRANSCRIPTION") {
+    buffer += " " + request.text; // Adiciona ao buffer
+
+    // Reinicia o timer para consolidar o texto
+    if (bufferTimer) {
+      clearTimeout(bufferTimer);
+    }
+
+    bufferTimer = setTimeout(() => {
+      processBuffer(); // Processa o buffer após o timeout
+    }, BUFFER_TIMEOUT);
   } else if (request.type === "GET_TRANSCRIPTIONS") {
-    // Quando o popup pedir, enviamos a lista completa
-    sendResponse({ transcriptions });
+    // Envia todas as transcrições ao popup
+    chrome.runtime.sendMessage({ type: "ALL_TRANSCRIPTIONS", transcriptions });
   }
 });

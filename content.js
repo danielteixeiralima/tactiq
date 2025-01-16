@@ -1,21 +1,27 @@
 (function () {
+  let lastProcessedText = ""; // Armazena a última transcrição processada
+  let lastSpeaker = ""; // Armazena o último nome do usuário falante
+
   function initializeCaptionObserver() {
     const captionContainer = findCaptionContainer();
 
     if (captionContainer) {
-      let lastText = "";
-
-      const observer = new MutationObserver((mutations) => {
+      const observer = new MutationObserver(() => {
         const currentText = captionContainer.innerText.trim();
+        const currentSpeaker = findCurrentSpeaker();
 
-        if (currentText && currentText !== lastText && currentText !== "…") {
-          console.log(`Transcrição (console): ${currentText}`);
-          lastText = currentText;
+        // Evita capturar strings vazias ou "..." e verifica mudanças
+        if (currentText && currentSpeaker && currentText !== "…" && currentText !== lastProcessedText) {
+          lastProcessedText = currentText;
+          lastSpeaker = currentSpeaker;
 
-          // ---- Envia a transcrição para o background.js ----
+          const formattedTranscription = `${currentSpeaker}: ${currentText}`;
+          console.log(`Transcrição formatada: ${formattedTranscription}`);
+
+          // Envia a transcrição formatada para o background.js
           chrome.runtime.sendMessage({
             type: "NEW_TRANSCRIPTION",
-            text: currentText,
+            text: formattedTranscription,
           });
         }
       });
@@ -30,20 +36,15 @@
     }
   }
 
+  // Função para localizar o container de legendas
   function findCaptionContainer() {
-    const container = document.querySelector('[jsname="YSxPC"]');
-    if (container) {
-      const textContent = container.innerText.trim();
-      if (textContent && textContent !== "…") {
-        console.log("Transcrição inicial (console):", textContent);
-        // Também envia a primeira transcrição para o background
-        chrome.runtime.sendMessage({
-          type: "NEW_TRANSCRIPTION",
-          text: textContent,
-        });
-      }
-    }
-    return container;
+    return document.querySelector('[jsname="YSxPC"]');
+  }
+
+  // Função para localizar o nome do usuário que está falando
+  function findCurrentSpeaker() {
+    const speakerElement = document.querySelector('.KcIKyf.jxFHg'); // Seleciona o nome do usuário
+    return speakerElement ? speakerElement.innerText.trim() : null;
   }
 
   initializeCaptionObserver();
