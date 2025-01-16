@@ -1,48 +1,27 @@
 // background.js
 
-// Armazena todas as transcrições processadas
+// Armazena todas as transcrições finais processadas
 let transcriptions = [];
 
-// Buffer para consolidar transcrições antes de enviá-las
-let buffer = "";
-let bufferTimer = null;
-const BUFFER_TIMEOUT = 500; // Tempo de espera para consolidar fragmentos
+// Listener para mensagens do content.js e popup.js
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.type === "FINAL_TRANSCRIPTION") {
+    // Adiciona a transcrição final ao array
+    transcriptions.push(request.text);
+    console.log(`Transcrição final armazenada: ${request.text}`);
 
-// Função para processar o buffer e adicionar ao array de transcrições
-function processBuffer() {
-  if (buffer.trim().length > 0) {
-    const consolidatedText = buffer.trim();
-
-    // Adiciona a transcrição consolidada ao array
-    transcriptions.push(consolidatedText);
-
-    // Notifica o popup com a transcrição consolidada
+    // Envia a transcrição final para o popup.js
     chrome.runtime.sendMessage({
-      type: "NEW_TRANSCRIPTION",
-      text: consolidatedText,
+      type: "FINAL_TRANSCRIPTION",
+      text: request.text,
     });
 
-    // Limpa o buffer
-    buffer = "";
-    bufferTimer = null;
-  }
-}
-
-// Listener para mensagens do content.js
-chrome.runtime.onMessage.addListener((request) => {
-  if (request.type === "NEW_TRANSCRIPTION") {
-    buffer += " " + request.text; // Adiciona ao buffer
-
-    // Reinicia o timer para consolidar o texto
-    if (bufferTimer) {
-      clearTimeout(bufferTimer);
-    }
-
-    bufferTimer = setTimeout(() => {
-      processBuffer(); // Processa o buffer após o timeout
-    }, BUFFER_TIMEOUT);
+    sendResponse({ status: "success" });
   } else if (request.type === "GET_TRANSCRIPTIONS") {
-    // Envia todas as transcrições ao popup
-    chrome.runtime.sendMessage({ type: "ALL_TRANSCRIPTIONS", transcriptions });
+    // Retorna todas as transcrições finais armazenadas
+    sendResponse({ transcriptions });
   }
+
+  // Retorna true para indicar que a resposta será enviada de forma assíncrona
+  return true;
 });

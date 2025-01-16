@@ -68,11 +68,11 @@
       const formattedTranscription = `${currentSpeaker}: ${currentText}`;
       console.log(`Transcrição formatada: ${formattedTranscription}`);
 
-      // Envia a transcrição formatada para o background.js
-      chrome.runtime.sendMessage({
-        type: "NEW_TRANSCRIPTION",
-        text: formattedTranscription,
-      });
+      // *** Remover o envio de NEW_TRANSCRIPTION ***
+      // chrome.runtime.sendMessage({
+      //   type: "NEW_TRANSCRIPTION",
+      //   text: formattedTranscription,
+      // });
     }
   }
 
@@ -134,7 +134,7 @@
             if (captionContainerRemoved) {
               console.log("Container de legendas removido.");
 
-              // Process the last transcription before disconnecting
+              // Processa a última transcrição antes de desconectar
               if (lastProcessedText !== "" || lastSpeaker !== "") {
                 const formattedTranscription = `${lastSpeaker}: ${lastProcessedText}`;
                 console.log(`Transcrição final antes da remoção: ${formattedTranscription}`);
